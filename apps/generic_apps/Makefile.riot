@@ -1,0 +1,77 @@
+OUTPUT = out/riot
+OUTHEX = out
+
+CXXFLAGS    = -O2 -Wall -mcpu=arm7tdmi-s \
+		-fno-defer-pop -fno-exceptions -fno-rtti
+CFLAGS    = -O2 -Wall -mcpu=arm7tdmi-s \
+		-fno-defer-pop
+DEFINITIONS = -DMODULE_BOARD -DMODULE_CPU -DMODULE_CPU_DRIVERS \
+		-DMODULE_ARM_COMMON -DMODULE_CORE \ 
+		-DMODULE_CC110X -DMODULE_BOARD_CC1100 -DMODULE_SYS_LIB \
+		-DOSMODEL=RiotOsModel -DRIOT \
+		-DAUTOSTART_ENABLE
+
+INCLUDES    = -I. -I$(WISELIB_PATH) -I$(WISELIB_PATH_TESTING) \
+		-I$(WISELIB_PATH_TESTING)/external_interface/riot \
+		-I. -I$(RIOT_PATH)/core/include \
+		-I$(RIOT_PATH)/sys/include \
+		-I$(RIOT_PATH)/drivers/include \
+		-I$(RIOT_PATH)/drivers/cc110x -I$(RIOT_PATH)/sys/include/radio/ \
+		-I$(RIOT_PATH)/sys/lib \
+		-I$(RIOT_PATH)/board/msba2/drivers/include \
+		-I$(RIOT_PATH)/board/msba2-drivers/drivers/include \
+		-I$(RIOT_PATH)/cpu/lpc2387/drivers/include \
+		-I$(RIOT_PATH)/cpu/arm_common/include \
+		-I$(RIOT_PATH)/board/msba2/include \
+		-I$(RIOT_PATH)/board/msba2-common/include \
+		-I$(RIOT_PATH)/cpu/lpc2387/include
+LDFLAGS     = -Wl,-T"$(WISELIB_PATH_TESTING)/external_interface/riot/linkerscript.x" \
+		-Wl,-Map="$(RIOT_PATH)/bin/msba2/wiselib/msba2.map" -Wl,--cref
+LIBDIRS     = -L. -L$(RIOT_PATH) -L$(APP_PATH)/lib
+LIBS        = -lscatterweb -lCC1020
+# --------------------------------------------------------
+riot:
+	@echo "jam wiselib"
+	@mkdir -p $(OUTPUT)
+	@echo "compiling..."
+	arm-elf-gcc -std=gnu99 $(CFLAGS) $(DEFINITIONS) $(INCLUDES)	-o $(OUTPUT)/riot_startup.o	-c $(WISELIB_PATH_TESTING)/external_interface/riot/riot_startup.c
+	arm-elf-g++ $(CXXFLAGS) $(DEFINITIONS) $(INCLUDES) -o $(OUTPUT)/riot_os.o -c $(WISELIB_PATH_TESTING)/external_interface/riot/riot_os.cpp
+	arm-elf-g++ $(CXXFLAGS) $(DEFINITIONS) $(INCLUDES) -o $(OUTPUT)/riot_timer.o -c $(WISELIB_PATH_TESTING)/external_interface/riot/riot_timer.cpp
+	arm-elf-g++ $(CXXFLAGS) $(DEFINITIONS) $(INCLUDES) -o $(OUTPUT)/riot_cc1100_radio.o -c $(WISELIB_PATH_TESTING)/external_interface/riot/riot_cc1100_radio.cpp
+	arm-elf-g++ $(CXXFLAGS) $(DEFINITIONS) $(INCLUDES) -o $(OUTPUT)/$(BIN_OUT).o -c ./$(APP_SRC)
+	@echo "linking..."
+	arm-elf-g++ -mcpu=arm7tdmi-s -static -g -lgcc -nostartfiles \
+		-T $(WISELIB_PATH_TESTING)/external_interface/riot/linkerscript.x $(RIOT_PATH)/bin/msba2/wiselib/startup.o \
+		$(RIOT_PATH)/bin/msba2/wiselib/syscalls.o \
+		$(OUTPUT)/$(BIN_OUT).o \
+		$(OUTPUT)/riot_os.o \
+		$(OUTPUT)/riot_startup.o \
+		$(OUTPUT)/riot_timer.o \
+		$(OUTPUT)/riot_cc1100_radio.o -Wl,--start-group \
+		$(RIOT_PATH)/bin/msba2/wiselib/board.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/cpu.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/arm_common.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/board_common.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/core.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/core_lib.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/board_ltc4150.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/vtimer.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/board_cc110x.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/board_uart.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/cc110x.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/protocol_multiplex.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/ltc4150.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/gpioint.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/hwtimer.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/hwtimer_cpu.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/timex.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/ps.a \
+		$(RIOT_PATH)/bin/msba2/wiselib/rtc.a \
+		-lm -Wl,--end-group -Wl,-Map=$(RIOT_PATH)/bin/msba2/wiselib/msba2.map \
+		-o $(OUTPUT)/$(BIN_OUT).elf
+	@echo "make hex..."
+	arm-elf-objcopy -O ihex $(OUTPUT)/$(BIN_OUT).elf $(OUTPUT)/$(BIN_OUT).hex
+	arm-elf-objcopy -O binary $(OUTPUT)/$(BIN_OUT).elf $(OUTPUT)/$(BIN_OUT).bin
+	@cp $(OUTPUT)/$(BIN_OUT).hex $(OUTHEX)/
+	@echo "sizes..."
+	arm-elf-size $(OUTPUT)/$(BIN_OUT).elf

@@ -66,6 +66,9 @@ lorien_sky:
 pc:
 	make -f $(WISELIB_BASE)/apps/generic_apps/Makefile.pc WISELIB_EXIT_MAIN=$(WISELIB_EXIT_MAIN) ADD_CXXFLAGS=$(ADD_CXXFLAGS) PC_CXX_FLAGS=$(PC_CXX_FLAGS)
 
+riot-msba2:
+	make -f $(WISELIB_BASE)/apps/generic_apps/Makefile.riot msba2 BOARD=msba2 ADD_CXXFLAGS=$(ADD_CXXFLAGS)
+
 scw_msb:
 	make -f $(WISELIB_BASE)/apps/generic_apps/Makefile.scw scw_msb ADD_CXXFLAGS=$(ADD_CXXFLAGS)
 
@@ -168,7 +171,7 @@ tinyos-nodeid-gnode:
 ## Clean
 #####
 clean:
-	rm -Rf out/contiki-* out/feuerware out/isense out/pc out/scw out/shawn out/tinyos-* out/lorien-sky out/arduino \
+	rm -Rf out/contiki-* out/feuerware out/isense out/pc out/scw out/shawn out/tinyos-* out/lorien-sky out/arduino out/riot \
 		obj_* symbols.* contiki-* \
 		_TOSSIMmodule.so TOSSIM.* build/ simbuild/ app.xml
 	rm -f out/*
